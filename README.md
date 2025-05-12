@@ -41,8 +41,7 @@ portable. Optparse provides an `optparse_arg()` function for stepping
 through non-option arguments, and parsing of options can continue
 again at any time with a different option string. The Optparse struct
 itself could be passed around to subcommand handlers for additional
-subcommand option parsing. If a full parser reset is needed,
-`optparse_init()` can be called again.
+subcommand option parsing.
 
 3. In getopt, error messages are printed to stderr. This can be
 disabled with opterr, but the messages themselves are still
@@ -53,14 +52,12 @@ than the current locale.
 
 ## Permutation
 
-By default, argv is permuted as it is parsed, moving non-option
-arguments to the end of the array. This can be disabled by setting the
-`permute` field to 0 after initialization.
+Positional arguments are accumulated in the optional `positional` array
+passed as the second argument to `optparse_init`. If omitted, parsing
+stops on the first positional argument.
 
 ~~~c
-struct optparse options;
-optparse_init(&options, argv);
-options.permute = 0;
+struct optparse options = optparse_init(argv, NULL);
 ~~~
 
 ## Drop-in Replacement
@@ -117,8 +114,9 @@ int main(int argc, char **argv)
     }
 
     /* Print remaining arguments. */
-    for (; optind < argc; optind++)
+    for (; optind < argc; optind++) {
         printf("%s\n", argv[optind]);
+    }
     return 0;
 }
 ~~~
@@ -145,7 +143,7 @@ int main(int argc, char **argv)
     int option;
     struct optparse options;
 
-    optparse_init(&options, argv);
+    options = optparse_init(argv, 0);
     while ((option = optparse(&options, "abc:d::")) != -1) {
         switch (option) {
         case 'a':
@@ -167,13 +165,14 @@ int main(int argc, char **argv)
     }
 
     /* Print remaining arguments. */
-    while ((arg = optparse_arg(&options)))
-        printf("%s\n", arg);
+    for (; options.optind < argc; options.optind++) {
+        printf("%s\n", argv[options.optind]);
+    }
     return 0;
 }
 ~~~
 
-And here's a conversion to long options.
+And here's a conversion to long options, with permutation.
 
 ~~~c
 #include <stdio.h>
@@ -203,7 +202,7 @@ int main(int argc, char **argv)
     int option;
     struct optparse options;
 
-    optparse_init(&options, argv);
+    options = optparse_init(argv, calloc(argc, sizeof(char *)));
     while ((option = optparse_long(&options, longopts, NULL)) != -1) {
         switch (option) {
         case 'a':
@@ -225,9 +224,9 @@ int main(int argc, char **argv)
     }
 
     /* Print remaining arguments. */
-    while ((arg = optparse_arg(&options)))
-        printf("%s\n", arg);
-
+    for (int i = 0; i < options.npositional; i++) {
+        printf("%s\n", options.positional[i]);
+    }
     return 0;
 }
 ~~~

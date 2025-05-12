@@ -16,14 +16,15 @@ print_argv(char **argv)
 }
 
 static void
-try_optparse(char **argv)
+try_optparse(int argc, char **argv)
 {
     int opt;
     char *arg;
+    char **positional;
     struct optparse options;
 
     print_argv(argv);
-    optparse_init(&options, argv);
+    options = optparse_init(argv, calloc(argc, sizeof(char *)));
     while ((opt = optparse(&options, "abc:d::")) != -1) {
         if (opt == '?') {
             printf("%s: %s\n", argv[0], options.errmsg);
@@ -37,7 +38,7 @@ try_optparse(char **argv)
 }
 
 static void
-try_optparse_long(char **argv)
+try_optparse_long(int argc, char **argv)
 {
     char *arg;
     int opt, longindex;
@@ -52,7 +53,7 @@ try_optparse_long(char **argv)
     };
 
     print_argv(argv);
-    optparse_init(&options, argv);
+    options = optparse_init(argv, calloc(argc, sizeof(char *)));
     while ((opt = optparse_long(&options, longopts, &longindex)) != -1) {
         char buf[2] = {0, 0};
         if (opt == '?') {
@@ -77,10 +78,10 @@ manual_test(int argc, char **argv)
 
     memcpy(argv_copy, argv, size);
     printf("\nOPTPARSE\n");
-    try_optparse(argv_copy);
+    try_optparse(argc, argv_copy);
 
     printf("\nOPTPARSE LONG\n");
-    try_optparse_long(argv);
+    try_optparse_long(argc, argv);
     return 0;
 }
 
@@ -202,10 +203,11 @@ testsuite(void)
     for (i = 0; i < ntests; i++) {
         int j, opt, longindex;
         char *arg, *err = 0;
+        char *positional[8] = {0};
         struct optparse options;
         struct config conf = {0, 0, 0, 0, 0};
 
-        optparse_init(&options, t[i].argv);
+        options = optparse_init(t[i].argv, positional);
         while ((opt = optparse_long(&options, longopts, &longindex)) != -1) {
             switch (opt) {
             case 'a': conf.amend = 1; break;
@@ -270,14 +272,14 @@ testsuite(void)
             }
 
             for (j = 0; t[i].args[j]; j++) {
-                arg = optparse_arg(&options);
+                arg = positional[j];
                 if (!arg || strcmp(arg, t[i].args[j])) {
                     nfails++;
                     printf("FAIL (%2d): expected arg %s, got %s\n",
                            i, t[i].args[j], arg ? arg : "(nil)");
                 }
             }
-            if ((arg = optparse_arg(&options))) {
+            if (j != options.npositional) {
                 nfails++;
                 printf("FAIL (%2d): expected no more args, got %s\n",
                        i, arg);
