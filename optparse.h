@@ -128,14 +128,16 @@ optparse_error(struct optparse *options, const char *msg, const char *data)
 {
     unsigned p = 0;
     const char *sep = " -- '";
-    while (*msg)
+    while (*msg && p < sizeof(options->errmsg) - 1)
         options->errmsg[p++] = *msg++;
-    while (*sep)
+    while (*sep && p < sizeof(options->errmsg) - 1)
         options->errmsg[p++] = *sep++;
-    while (p < sizeof(options->errmsg) - 2 && *data)
+    while (*data && p < sizeof(options->errmsg) - 2)
         options->errmsg[p++] = *data++;
-    options->errmsg[p++] = '\'';
-    options->errmsg[p++] = '\0';
+    if (p < sizeof(options->errmsg) - 2) {
+        options->errmsg[p++] = '\'';
+    }
+    options->errmsg[p] = '\0';
     return '?';
 }
 
