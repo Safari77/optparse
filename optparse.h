@@ -229,7 +229,12 @@ optparse(struct optparse *options, const char *optstring)
     case -1: {
         char str[2] = {0, 0};
         str[0] = option[0];
-        options->optind++;
+        if (option[1]) {
+            options->subopt++;
+        } else {
+            options->subopt = 0;
+            options->optind++;
+        }
         return optparse_error(options, OPTPARSE_MSG_INVALID, str);
     }
     case OPTPARSE_NONE:
