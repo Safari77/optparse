@@ -2,3 +2,5 @@ test
 examples/long
 examples/short
 examples/subcommands
+*~
+.*.sw?
